@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: metasploit | 0x0badc0[.]de]]></title>
+  <link href="http://flowztul.github.io/blog/categories/metasploit/atom.xml" rel="self"/>
+  <link href="http://flowztul.github.io/"/>
+  <updated>2014-01-22T22:36:35+01:00</updated>
+  <id>http://flowztul.github.io/</id>
+  <author>
+    <name><![CDATA[Lutz Wolf]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Per-User PostgreSQL Database for Metasploit]]></title>
+    <link href="http://flowztul.github.io/blog/2014/01/22/per-user-postgresql-database-for-metasploit/"/>
+    <updated>2014-01-22T22:02:00+01:00</updated>
+    <id>http://flowztul.github.io/blog/2014/01/22/per-user-postgresql-database-for-metasploit</id>
+    <content type="html"><![CDATA[<p>Database support in <a href="http://www.metasploit.com/">Metasploit</a> is really handy
+for pentesting engangements that cover more than just a few hosts. With
+database support, Metasploit</p>
+
+<ul>
+<li>lets you import Nmap and other scans into the database,</li>
+<li>lets you search the database for hosts and services, which provides for a really handy way of populating <code>RHOSTS</code>, and</li>
+<li>provides a credentials database that is automatically populated by most of the auxiliary login scanner modules. Some of the login scanner modules can also use the credentials database as a source for verifying known credentials against new services.</li>
+</ul>
+
+
+<p><a href="http://www.offensive-security.com/metasploit-unleashed/Using_the_Database">Metasploit Unleashed</a>
+has some more information about the database, which should be enough to get you
+started once you managed to set everything up. Getting PostgreSQL up and
+running is fairly straightforward, and you can even get by without a fully
+configured PostgreSQL installation, by running the database server from the
+same user account that you use to run Metasploit. This was first shown to me by
+one of my <a href="https://www.redteam-pentesting.de/redteam">colleagues</a>. While I
+think that he also showed me a publicly available description of such a setup
+at the time, I can now no longer find it.  Therefore I decided to reproduce the
+necessary steps and document them here as a reminder for myself and others that
+may find this information useful. Most of it is based on an excellent guide on
+the <a href="http://fedoraproject.org/wiki/Metasploit_Postgres_Setup">FedoraProject Wiki</a> that describes
+how to get Metasploit to run with a systemwide PostgreSQL installation on
+Fedora.</p>
+
+<p>The first step is to initialise the PostgreSQL database. Pick a target
+directory (<code>~/.postgresql</code> in my case) and run:
+```
+someone@lolcathost:~$ initdb &mdash;pgdata=${HOME}/.postgresql
+The files belonging to this database system will be owned by user &ldquo;someone&rdquo;.
+This user must also own the server process.</p>
+
+<p>[&hellip;]</p>
+
+<p>Data page checksums are disabled.</p>
+
+<p>fixing permissions on existing directory /home/someone/.postgresql &hellip; ok
+creating subdirectories &hellip; ok
+selecting default max_connections &hellip; 100
+selecting default shared_buffers &hellip; 128MB
+creating configuration files &hellip; ok
+creating template1 database in /home/someone/.postgresql/base/1 &hellip; ok</p>
+
+<p>[&hellip;]</p>
+
+<p>WARNING: enabling &ldquo;trust&rdquo; authentication for local connections
+You can change this by editing pg_hba.conf or using the option -A, or
+&mdash;auth-local and &mdash;auth-host, the next time you run initdb.</p>
+
+<p>Success. You can now start the database server using:</p>
+
+<pre><code>postgres -D /home/someone/.postgresql
+</code></pre>
+
+<p>or</p>
+
+<pre><code>pg_ctl -D /home/someone/.postgresql -l logfile start
+</code></pre>
+
+<p>```</p>
+
+<p>Next, start the database server:
+<code>
+someone@lolcathost:~$ postgres -D ${HOME}/.postgresql -k ${HOME}/.postgresql
+LOG:  database system was shut down at 2013-10-04 08:56:33 CEST
+LOG:  autovacuum launcher started
+LOG:  database system is ready to accept connections
+</code>
+You can now create a PostgreSQL user account for Metasploit to use:
+<code>
+someone@lolcathost:~$ createuser -h ${HOME}/.postgresql -P msf_user
+Enter password for new role:
+Enter it again:
+</code></p>
+
+<p>Next, a database must be created:</p>
+
+<p><code>
+someone@lolcathost:~$ createdb -h ${HOME}/.postgresql --owner=msf_user msf_database
+</code></p>
+
+<p>Finally, create a database configuration file for Metasploit. It seems that
+<code>~/.msf4/database.yml</code> is automatically used by Metasploit to establish a
+database connection:</p>
+
+<p>```
+someone@lolcathost:~/repos/metasploit-framework$ cat > ~/.msf4/database.yml &lt;&lt;EOF</p>
+
+<blockquote><p>production:</p>
+
+<pre><code>adapter: postgresql
+database: msf_database
+username: msf_user
+password: &lt;your password&gt; 
+host: /home/someone/.postgresql
+pool: 75
+timeout: 5
+</code></pre>
+
+<p>EOF
+```</p></blockquote>
+
+<p>Finally, start Metasploit and enjoy database support. Should you stop the
+database server, or reboot your system, just remember to start PostgreSQL as
+shown above before you start Metasploit and you&rsquo;re good to go again.</p>
+]]></content>
+  </entry>
+  
+</feed>

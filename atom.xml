@@ -4,7 +4,7 @@
   <title><![CDATA[0x0badc0[.]de]]></title>
   <link href="http://flowztul.github.io/atom.xml" rel="self"/>
   <link href="http://flowztul.github.io/"/>
-  <updated>2014-01-22T22:19:49+01:00</updated>
+  <updated>2014-01-22T22:36:35+01:00</updated>
   <id>http://flowztul.github.io/</id>
   <author>
     <name><![CDATA[Lutz Wolf]]></name>
@@ -12,5 +12,154 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Per-User PostgreSQL Database for Metasploit]]></title>
+    <link href="http://flowztul.github.io/blog/2014/01/22/per-user-postgresql-database-for-metasploit/"/>
+    <updated>2014-01-22T22:02:00+01:00</updated>
+    <id>http://flowztul.github.io/blog/2014/01/22/per-user-postgresql-database-for-metasploit</id>
+    <content type="html"><![CDATA[<p>Database support in <a href="http://www.metasploit.com/">Metasploit</a> is really handy
+for pentesting engangements that cover more than just a few hosts. With
+database support, Metasploit</p>
+
+<ul>
+<li>lets you import Nmap and other scans into the database,</li>
+<li>lets you search the database for hosts and services, which provides for a really handy way of populating <code>RHOSTS</code>, and</li>
+<li>provides a credentials database that is automatically populated by most of the auxiliary login scanner modules. Some of the login scanner modules can also use the credentials database as a source for verifying known credentials against new services.</li>
+</ul>
+
+
+<p><a href="http://www.offensive-security.com/metasploit-unleashed/Using_the_Database">Metasploit Unleashed</a>
+has some more information about the database, which should be enough to get you
+started once you managed to set everything up. Getting PostgreSQL up and
+running is fairly straightforward, and you can even get by without a fully
+configured PostgreSQL installation, by running the database server from the
+same user account that you use to run Metasploit. This was first shown to me by
+one of my <a href="https://www.redteam-pentesting.de/redteam">colleagues</a>. While I
+think that he also showed me a publicly available description of such a setup
+at the time, I can now no longer find it.  Therefore I decided to reproduce the
+necessary steps and document them here as a reminder for myself and others that
+may find this information useful. Most of it is based on an excellent guide on
+the <a href="http://fedoraproject.org/wiki/Metasploit_Postgres_Setup">FedoraProject Wiki</a> that describes
+how to get Metasploit to run with a systemwide PostgreSQL installation on
+Fedora.</p>
+
+<p>The first step is to initialise the PostgreSQL database. Pick a target
+directory (<code>~/.postgresql</code> in my case) and run:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>someone@lolcathost:~$ initdb --pgdata=${HOME}/.postgresql
+</span><span class='line'>The files belonging to this database system will be owned by user "someone".
+</span><span class='line'>This user must also own the server process.
+</span><span class='line'>
+</span><span class='line'>[...]
+</span><span class='line'>
+</span><span class='line'>Data page checksums are disabled.
+</span><span class='line'>
+</span><span class='line'>fixing permissions on existing directory /home/someone/.postgresql ... ok
+</span><span class='line'>creating subdirectories ... ok
+</span><span class='line'>selecting default max_connections ... 100
+</span><span class='line'>selecting default shared_buffers ... 128MB
+</span><span class='line'>creating configuration files ... ok
+</span><span class='line'>creating template1 database in /home/someone/.postgresql/base/1 ... ok
+</span><span class='line'>
+</span><span class='line'>[...]
+</span><span class='line'>
+</span><span class='line'>WARNING: enabling "trust" authentication for local connections
+</span><span class='line'>You can change this by editing pg_hba.conf or using the option -A, or
+</span><span class='line'>--auth-local and --auth-host, the next time you run initdb.
+</span><span class='line'>
+</span><span class='line'>Success. You can now start the database server using:
+</span><span class='line'>
+</span><span class='line'>    postgres -D /home/someone/.postgresql
+</span><span class='line'>or
+</span><span class='line'>    pg_ctl -D /home/someone/.postgresql -l logfile start
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Next, start the database server:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>someone@lolcathost:~$ postgres -D ${HOME}/.postgresql -k ${HOME}/.postgresql
+</span><span class='line'>LOG:  database system was shut down at 2013-10-04 08:56:33 CEST
+</span><span class='line'>LOG:  autovacuum launcher started
+</span><span class='line'>LOG:  database system is ready to accept connections</span></code></pre></td></tr></table></div></figure>
+
+
+<p>You can now create a PostgreSQL user account for Metasploit to use:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>someone@lolcathost:~$ createuser -h ${HOME}/.postgresql -P msf_user
+</span><span class='line'>Enter password for new role: 
+</span><span class='line'>Enter it again: </span></code></pre></td></tr></table></div></figure>
+
+
+<p>Next, a database must be created:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>someone@lolcathost:~$ createdb -h ${HOME}/.postgresql --owner=msf_user msf_database</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Finally, create a database configuration file for Metasploit. It seems that
+<code>~/.msf4/database.yml</code> is automatically used by Metasploit to establish a
+database connection:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>someone@lolcathost:~/repos/metasploit-framework$ cat &gt; ~/.msf4/database.yml &lt;&lt;EOF
+</span><span class='line'>&gt; production:
+</span><span class='line'>&gt;     adapter: postgresql
+</span><span class='line'>&gt;     database: msf_database
+</span><span class='line'>&gt;     username: msf_user
+</span><span class='line'>&gt;     password: &lt;your password&gt; 
+</span><span class='line'>&gt;     host: /home/someone/.postgresql
+</span><span class='line'>&gt;     pool: 75
+</span><span class='line'>&gt;     timeout: 5
+</span><span class='line'>&gt; EOF</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Finally, start Metasploit and enjoy database support. Should you stop the
+database server, or reboot your system, just remember to start PostgreSQL as
+shown above before you start Metasploit and you&rsquo;re good to go again.</p>
+]]></content>
+  </entry>
   
 </feed>
